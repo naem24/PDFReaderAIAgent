@@ -72,16 +72,16 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", google_api_key=os.environ["GOOGLE_API_KEY"])
     qa_chain = RunnableSequence(prompt | llm)  # Updated to use RunnableSequence
     
-    # Set setup to True to indicate agent is ready
-    st.session_state.setup = True
-
     st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
     user_question = st.text_input(label="", placeholder="Enter your query...")
 
     answer_sel = st.button("Answer")
 
     if answer_sel:
-        with st.spinner("Thinking..."):
-            answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
-            return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
-            st.write(return_text ,unsafe_allow_html=True)
+        if not pdf_text:
+            st.warning("Please upload the textual PDF file first")
+        else:
+            with st.spinner("Thinking..."):
+                answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
+                return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
+                st.write(return_text ,unsafe_allow_html=True)
