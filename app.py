@@ -9,18 +9,13 @@ import os
 
 # Start Helper functions 
 
-# Extract text from multiple PDFs
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    try:
-        with open(pdf_path, "rb") as file:
-            reader = PyPDF2.PdfReader(file)
-            for page in reader.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"  # Add newline to separate text from different PDFs
-    except FileNotFoundError:
-            text += f"Error: The file '{pdf_path}' was not found.\n"
+# Extract text from the PDF
+def get_pdf_text(pdf_list):
+    text=""
+    for pdf in pdf_list:
+        pdf_reader=PdfReader(pdf)
+        for page in pdf_reader.pages:
+            text+=page.extract_text()
     return text
 
 # Function to answer questions
@@ -48,7 +43,7 @@ def main():
     with st.sidebar:
         st.subheader(":file_folder: PDF File's Section")
         
-        pdf_path = st.file_uploader("Upload your PDF files here and train agent", type=['pdf'], accept_multiple_files=False)
+        pdf_paths = st.file_uploader("Upload your PDF files here and train agent", type=['pdf'], accept_multiple_files=True)
         
         setup = st.button("Setup the Agent")
 
@@ -56,7 +51,7 @@ def main():
         if setup:
             with st.spinner("Setting up..."):
                 # 1 - Get the text from PDFs
-                pdf_text = extract_text_from_pdf(pdf_path)
+                pdf_text = get_pdf_text(pdf_paths)
                 
                 # 2 - Define the prompt template
                 # Define prompt template
