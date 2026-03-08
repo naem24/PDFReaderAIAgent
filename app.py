@@ -34,7 +34,6 @@ def answer_question(pdf_text, question):
 # Set some pre-defined configurations for the page, such as the page title, logo-icon, page loading state (whether the page is loaded automatically or you need to perform some action for loading)
 st.set_page_config(
     page_title="PDF AI Agent",
-    initial_sidebar_state = 'auto',
     layout='wide'
 )
 
