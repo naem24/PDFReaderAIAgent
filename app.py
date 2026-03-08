@@ -1,28 +1,15 @@
-import streamlit as st
+# Imports go here
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableSequence
+from langchain_google_genai import ChatGoogleGenerativeAI
 import PyPDF2
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader
-from langchain_text_splitters import CharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_classic.memory import ConversationBufferMemory
-from langchain_classic.chains import ConversationalRetrievalChain
-from langchain_google_genai import ChatGoogleGenerativeAI 
-from htmlTemplates import css,bot_template,user_template
 import os
 
-def get_pdf_text(pdf_list):
-    text=""
-    for pdf in pdf_list:
-        pdf_reader=PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text+=page.extract_text()
-    return text
+# Start Helper functions 
 
 # Extract text from multiple PDFs
-def extract_text_from_pdf(pdf_paths):
+def extract_text_from_pdf(pdf_path):
     text = ""
-    for pdf_path in pdf_paths:  # Iterate over the list of PDF paths
         try:
             with open(pdf_path, "rb") as file:
                 reader = PyPDF2.PdfReader(file)
@@ -34,95 +21,68 @@ def extract_text_from_pdf(pdf_paths):
             text += f"Error: The file '{pdf_path}' was not found.\n"
     return text
 
-def get_text_chunks(text):
-    text_splitter=CharacterTextSplitter(
-        separator="\n",
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len,
-    )
-    chunks=text_splitter.split_text(text)
-    return chunks
+# Function to answer questions
+def answer_question(pdf_text, question):
+    if not pdf_text:
+        return "Error: No text extracted from the PDFs."
+    
+    answer = qa_chain.invoke({"context": pdf_text, "question": question})  # Updated to use invoke
+    return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
 
-def get_vector_store(text_chunks):
-    if not text_chunks:
-        st.warning("Please upload the textual PDF file - this is PDF files of image")
-        return None
-        
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
-    return vectorstore
+    st.write(bot_template.replace("{{MSG}}",return_text),unsafe_allow_html=True)
 
-def get_conversation_chain(vector_store):
-    llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview")
-    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-    conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm = llm,
-        retriever = vector_store.as_retriever(),
-        memory = memory
-    )
-    return conversation_chain
-
-
-def handle_userInput(user_question):
-    response=st.session_state.conversation({'question':user_question})
-    st.session_state.chat_history=response['chat_history']
-
-    for i, msg in enumerate(st.session_state.chat_history):
-        if i%2==0:
-            st.write(user_template.replace("{{MSG}}",msg.content),unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace("{{MSG}}",msg.content),unsafe_allow_html=True)
+# End helper functions
 
 def main():
-    load_dotenv()
-
     os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-
-    st.set_page_config(page_title="PDF's Chat Agent")
-
+    st.set_page_config(page_title="PDF's Agent")
     st.write(css, unsafe_allow_html=True)
 
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = None
-        
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = None
+    if "setup" not in st.session_state:
+        st.session_state.setup = False
 
-    if "train" not in st.session_state:
-        st.session_state.train = False
-
-    st.header("Multi-PDF's :books: - Chat Agent :robot_face:")
+    st.header("PDF Agent")
 
     with st.sidebar:
         st.subheader(":file_folder: PDF File's Section")
-        pdf_list = st.file_uploader("Upload your PDF files here and train agent", type=['pdf'], accept_multiple_files=True)
-        train = st.button("Train the Agent")
-        if train:
-            with st.spinner("Processing"):
+        
+        pdf_path = st.file_uploader("Upload your PDF files here and train agent", type=['pdf'], accept_multiple_files=False)
+        
+        setup = st.button("Setup the Agent")
+
+        # If user selects to Setup, go ahead
+        if setup:
+            with st.spinner("Setting up..."):
                 # 1 - Get the text from PDFs
-                raw_text = get_pdf_text(pdf_list)
+                pdf_text = extract_text_from_pdf(pdf_path)
                 
-                # 2 - get the text chunks
-                text_chunks = get_text_chunks(raw_text)
+                # 2 - Define the prompt template
+                # Define prompt template
+                template = """
+                You are an expert AI assistant. Use the information provided for answering the question
+                Context: {context}
+                Question: {question}
+                Answer:
+                """
+                prompt = PromptTemplate(input_variables=["context", "question"], template=template)
                 
-                # 3 - Create vector store
-                vector_store = get_vector_store(text_chunks)
+                # 3 - Initialize Gemini LLM and chain
+                llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", google_api_key=os.environ["GOOGLE_API_KEY"])
+                qa_chain = RunnableSequence(prompt | llm)  # Updated to use RunnableSequence
                 
-                # 4 - conversation chain
-                st.session_state.conversation = get_conversation_chain(vector_store)
-                
-                # set train to True to indicate agent has been trained
-                st.session_state.train = True
+                # Set setup to True to indicate agent is ready
+                st.session_state.setup = True
 
-    if not st.session_state.train:
-        st.warning("First Train the Agent")
+    if not st.session_state.setup:
+        st.warning("First setup the Agent")
 
-    if st.session_state.train:
+    if st.session_state.setup:
         st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
-        user_question = st.text_input(label="", placeholder="Enter something...")
+        user_question = st.text_input(label="", placeholder="Enter your query...")
+        
         if user_question:
-            handle_userInput(user_question)
-
+            answer_question(pdf_text, user_question)
+ 
 if __name__ == "__main__":
     main()
+
