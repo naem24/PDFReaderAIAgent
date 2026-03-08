@@ -3,6 +3,7 @@ import streamlit as st
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 from langchain_google_genai import ChatGoogleGenerativeAI
+from htmlTemplates import css,bot_template,user_template
 import PyPDF2
 import os
 
