@@ -4,7 +4,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 from langchain_google_genai import ChatGoogleGenerativeAI
 from htmlTemplates import css,bot_template,user_template
-import PyPDF2
+from PyPDF2 import PdfReader
 import os
 
 # Start Helper functions 
@@ -13,9 +13,9 @@ import os
 def get_pdf_text(pdf_list):
     text=""
     for pdf in pdf_list:
-        pdf_reader=PdfReader(pdf)
+        pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text+=page.extract_text()
+            text += page.extract_text()
     return text
 
 # Function to answer questions
