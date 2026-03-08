@@ -1,8 +1,9 @@
 import streamlit as st
+import PyPDF2
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_classic.chains import ConversationalRetrievalChain
@@ -16,6 +17,21 @@ def get_pdf_text(pdf_list):
         pdf_reader=PdfReader(pdf)
         for page in pdf_reader.pages:
             text+=page.extract_text()
+    return text
+
+# Extract text from multiple PDFs
+def extract_text_from_pdf(pdf_paths):
+    text = ""
+    for pdf_path in pdf_paths:  # Iterate over the list of PDF paths
+        try:
+            with open(pdf_path, "rb") as file:
+                reader = PyPDF2.PdfReader(file)
+                for page in reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"  # Add newline to separate text from different PDFs
+        except FileNotFoundError:
+            text += f"Error: The file '{pdf_path}' was not found.\n"
     return text
 
 def get_text_chunks(text):
@@ -32,13 +48,13 @@ def get_vector_store(text_chunks):
     if not text_chunks:
         st.warning("Please upload the textual PDF file - this is PDF files of image")
         return None
-    embeddings = OpenAIEmbeddings(openai_api_key=st.secrets["OPEN_AI_APIKEY"])
+        
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
     return vectorstore
 
-
 def get_conversation_chain(vector_store):
-    llm = ChatOpenAI(openai_api_key=st.secrets["OPEN_AI_APIKEY"])
+    llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview")
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm = llm,
@@ -61,11 +77,15 @@ def handle_userInput(user_question):
 def main():
     load_dotenv()
 
-    st.set_page_config(page_title="PDF's Chat Agent", page_icon=":scroll:")
+    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+
+    st.set_page_config(page_title="PDF's Chat Agent")
+
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
+        
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
@@ -80,14 +100,18 @@ def main():
         train = st.button("Train the Agent")
         if train:
             with st.spinner("Processing"):
-                # get the text from PDFs
+                # 1 - Get the text from PDFs
                 raw_text = get_pdf_text(pdf_list)
-                # get the text chunks
+                
+                # 2 - get the text chunks
                 text_chunks = get_text_chunks(raw_text)
-                # create vector store
+                
+                # 3 - Create vector store
                 vector_store = get_vector_store(text_chunks)
-                # conversation chain
+                
+                # 4 - conversation chain
                 st.session_state.conversation = get_conversation_chain(vector_store)
+                
                 # set train to True to indicate agent has been trained
                 st.session_state.train = True
 
