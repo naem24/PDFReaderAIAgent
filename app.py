@@ -10,14 +10,14 @@ import os
 # Extract text from multiple PDFs
 def extract_text_from_pdf(pdf_path):
     text = ""
-        try:
-            with open(pdf_path, "rb") as file:
-                reader = PyPDF2.PdfReader(file)
-                for page in reader.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text += page_text + "\n"  # Add newline to separate text from different PDFs
-        except FileNotFoundError:
+    try:
+        with open(pdf_path, "rb") as file:
+            reader = PyPDF2.PdfReader(file)
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"  # Add newline to separate text from different PDFs
+    except FileNotFoundError:
             text += f"Error: The file '{pdf_path}' was not found.\n"
     return text
 
