@@ -69,7 +69,7 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     prompt = PromptTemplate(input_variables=["context", "question"], template=template)
     
     # 3 - Initialize Gemini LLM and chain
-    llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", google_api_key=os.environ["GOOGLE_API_KEY"])
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
     qa_chain = RunnableSequence(prompt | llm)  # Updated to use RunnableSequence
     
     st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
