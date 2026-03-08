@@ -76,10 +76,13 @@ with st.columns([0.10, 0.80, 0.10])[1]:
         # Set setup to True to indicate agent is ready
         st.session_state.setup = True
 
-    if st.session_state.setup:
         st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
         user_question = st.text_input(label="", placeholder="Enter your query...")
-        
-        answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
-        return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
-        st.write(return_text ,unsafe_allow_html=True)
+
+        answer_sel = st.button("Answer")
+
+        if answer_sel:
+            with st.spinner("Thinking..."):
+                answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
+                return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
+                st.write(return_text ,unsafe_allow_html=True)
