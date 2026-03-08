@@ -70,16 +70,12 @@ def main():
                 # Set setup to True to indicate agent is ready
                 st.session_state.setup = True
 
-    if not st.session_state.setup:
-        st.warning("First setup the Agent")
-
-    if st.session_state.setup:
-        st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
-        user_question = st.text_input(label="", placeholder="Enter your query...")
+                st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
+                user_question = st.text_input(label="", placeholder="Enter your query...")
+                
+                if user_question:
+                    answer_question(pdf_text, user_question)
         
-        if user_question:
-            answer_question(pdf_text, user_question)
- 
 if __name__ == "__main__":
     main()
 
