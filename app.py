@@ -70,7 +70,9 @@ def main():
             user_question = st.text_input(label="", placeholder="Enter your query...")
             
             if user_question:
-                answer_question(pdf_text, user_question)
+                answer = qa_chain.invoke({"context": pdf_text, "question": question})  # Updated to use invoke
+                return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
+                st.write(bot_template.replace("{{MSG}}",return_text),unsafe_allow_html=True)
         
 if __name__ == "__main__":
     main()
