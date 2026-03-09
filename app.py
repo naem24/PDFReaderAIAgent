@@ -53,7 +53,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # This ensure we have slotted the main page in 3 columns - with the middle column taking 80% of the space 
 with st.columns([0.10, 0.80, 0.10])[1]:
-    pdf_paths = st.file_uploader("Upload your PDF files here to train the agent", type=['pdf'], accept_multiple_files=False)
+    pdf_paths = st.file_uploader("Upload your PDF files here to train the agent", type=['pdf'], accept_multiple_files=True)
     
     # 1 - Get the text from PDFs
     pdf_text = get_pdf_text(pdf_paths)
@@ -82,9 +82,14 @@ with st.columns([0.10, 0.80, 0.10])[1]:
         options_list                         # Options
     )
 
-    if selected_option:
+    # Add the button to initiate the search
+    fetch_selected = st.button('Get SSI Details')
+    
+    if fetch_selected:
         if not pdf_text:
             st.warning("Please upload the textual PDF file first")
+        elif not selected_option:
+            st.warning("Please select a country from the list first")
         else:
             with st.spinner("Fetching..."):
                 user_question = "Show the Account number, place of settlement and SWIFT Code for the country " + selected_option
