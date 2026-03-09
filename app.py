@@ -53,7 +53,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # This ensure we have slotted the main page in 3 columns - with the middle column taking 80% of the space 
 with st.columns([0.10, 0.80, 0.10])[1]:
-    pdf_paths = st.file_uploader("Upload your PDF files here and train agent", type=['pdf'], accept_multiple_files=True)
+    pdf_paths = st.file_uploader("Upload your PDF files here to train the agent", type=['pdf'], accept_multiple_files=False)
     
     # 1 - Get the text from PDFs
     pdf_text = get_pdf_text(pdf_paths)
@@ -61,7 +61,8 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     # 2 - Define the prompt template
     # Define prompt template
     template = """
-    You are an expert AI assistant. Use the information provided for answering the question
+    You are an expert AI assistant. Use the information provided for answering the question. If the information is not available, 
+    return 'Not Available' as an answer.
     Context: {context}
     Question: {question}
     Answer:
@@ -71,17 +72,23 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     # 3 - Initialize Gemini LLM and chain
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
     qa_chain = RunnableSequence(prompt | llm)  # Updated to use RunnableSequence
-    
-    st.write("<h5><br>Ask anything from your documents:</h5>", unsafe_allow_html=True)
-    user_question = st.text_input(label="", placeholder="Enter your query...")
 
-    answer_sel = st.button("Answer")
+    # Define the options for the country dropdown
+    options_list = ['Croatia', 'Cyprus', 'Denmark', 'Finland', 'France']
 
-    if answer_sel:
+    # Create the selectbox
+    selected_option = st.selectbox(
+        'Select the country for which you want to view the SSI details', # Label
+        options_list                         # Options
+    )
+
+    if selected_option:
         if not pdf_text:
             st.warning("Please upload the textual PDF file first")
         else:
-            with st.spinner("Thinking..."):
+            with st.spinner("Fetching..."):
+                user_question = "Show the Account number, place of settlement and SWIFT Code for the country " + selected_option
+                
                 answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
                 return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
                 st.write(return_text ,unsafe_allow_html=True)
