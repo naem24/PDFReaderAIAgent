@@ -61,8 +61,9 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     # 2 - Define the prompt template
     # Define prompt template
     template = """
-    You are an expert AI assistant. Use the information provided for answering the question. If the information is not available, 
-    return 'Not Available' as an answer.
+    You are an expert AI assistant. Use the information provided for answering the question. 
+    Return the result in a JSON format. If the information is not
+    available in the information, return 'Not Available' as the answer.
     Context: {context}
     Question: {question}
     Answer:
@@ -73,14 +74,20 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
     qa_chain = RunnableSequence(prompt | llm)  # Updated to use RunnableSequence
 
-    # Define the options for the country dropdown
-    options_list = ['Croatia', 'Cyprus', 'Denmark', 'Finland', 'France']
+    # Set the enabler via a checkbox - True for country, False for Currency
+    use_country = st.checkbox("Use country", value=True)
 
+    # Define the options for the country dropdown
+    countries_list = ['', 'Croatia', 'Cyprus', 'Denmark', 'Finland', 'France']
+    
     # Create the selectbox
-    selected_option = st.selectbox(
-        'Select the country for which you want to view the SSI details', # Label
-        options_list                         # Options
-    )
+    selected_country = st.selectbox('Select the country for which you want to view the SSI details',countries_list)
+    
+    # Define the options for the country dropdown
+    currency_list = ['', 'AED', 'AUD', 'INR', 'JPY', 'THB']
+    
+    # Create the selectbox
+    selected_currency = st.selectbox('Select the currency for which you want to view the SSI details',currency_list)
 
     # Add the button to initiate the search
     fetch_selected = st.button('Get SSI Details')
@@ -88,11 +95,16 @@ with st.columns([0.10, 0.80, 0.10])[1]:
     if fetch_selected:
         if not pdf_text:
             st.warning("Please upload the textual PDF file first")
-        elif not selected_option:
-            st.warning("Please select a country from the list first")
         else:
             with st.spinner("Fetching..."):
-                user_question = "Show the Account number, place of settlement and SWIFT Code for the country " + selected_option
+                if use_country:
+                    if not selected_country:
+                        st.warning("Please select the country from the list first")
+                    user_question = "Show the Account number, place of settlement and SWIFT Code for the country " + selected_country    
+                else:
+                    if not selected_currency:
+                        st.warning("Please select the currency from the list first")
+                    user_question = "Show the Bank Name, City, SWIFT Code, BIC, Broker Name and Broker Account for the currency " + selected_currency
                 
                 answer = qa_chain.invoke({"context": pdf_text, "question": user_question})  # Updated to use invoke
                 return_text = answer.content if hasattr(answer, 'content') else answer  # Handle response content
